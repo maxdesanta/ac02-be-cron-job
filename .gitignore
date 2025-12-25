@@ -1,0 +1,29 @@
+node_modules
+.env
+.env.local
+.env.production
+.env.staging
+
+# Environment templates (keep these for documentation)
+# .env.render
+# .env.supabase
+
+main.py
+
+# Database files
+.prod.env
+
+# Log files
+*.log
+npm-debug.log*
+
+# script
+scripts
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
