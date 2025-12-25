@@ -488,6 +488,98 @@ class MachinesModel {
     const result = await query(sql);
     return result.rows;
   }
+
+  // filter by status
+  static async getLatestMachinesByFilterPagination(status, risk, limit, offset) {
+    const sql = `
+      SELECT
+          m_latest.*,
+          p.prediction,
+          p.confidence,
+          p.severity,
+          p.overall_health_summary,
+          p.diagnostics,
+          p.anomalies,
+          p.features
+      FROM
+          (
+              SELECT DISTINCT ON (machine_id)
+                  *
+              FROM
+                  machines
+              ORDER BY
+                  machine_id ASC,
+                  timestamp DESC,
+                  id DESC
+          ) AS m_latest
+      JOIN machine_predictions p 
+          ON m_latest.machine_id = p.machine_id
+      WHERE 
+          p.${status} = $1 
+      ORDER BY
+          p.timestamp DESC
+      LIMIT $2 OFFSET $3;
+    `;
+
+    try {
+      const result = await query(sql, [risk, limit, offset]);
+      return result.rows;
+    }
+    catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  // count filter
+  static async getLatestMachinesByFilterCount(status, risk) {
+    const sql = `
+    SELECT COUNT(*) as count
+    FROM machine_predictions
+    WHERE ${status} = $1
+    `;
+    try {
+      const result = await query(sql, [risk]);
+      return result.rows[0].count;
+    } catch (err) {
+      console.log(err.message);
+    }
+  };
+
+  // get count prediction
+  static async getCountPrediction(column, name) {
+    const sql = `
+      SELECT 
+        ${column} AS ${name},
+        COUNT(DISTINCT machine_id) AS count
+      FROM 
+        machine_predictions
+      GROUP BY 
+        ${column};
+    `;
+
+    try {
+      const result = await query(sql);
+      return result.rows;
+    } catch (err) {
+      console.log(err.message);
+    }
+  }
+
+  // get count prediction
+  static async getCountMachinePredict() {
+    const sql = `
+      SELECT 
+        COUNT(DISTINCT machine_id)
+      FROM machine_predictions;
+    `;
+
+    try {
+      const result = await query(sql);
+      return result.rows[0].count;
+    } catch (err) {
+      console.log(err.message);
+    }
+  }
 }
 
 module.exports = { MachinesModel };

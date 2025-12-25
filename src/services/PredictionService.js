@@ -12,7 +12,6 @@ class PredictionService {
     try {
       // memastikan machine_id selalu string, prioritaskan product_id
       const machineId = machineData.machine_id;
-      const { default: fetch } = await import('node-fetch');
 
       const predictionPayload = {
         machine_id: machineId,
@@ -23,6 +22,9 @@ class PredictionService {
         tool_wear: parseInt(machineData.tool_wear),
         type: machineData.type,
       };
+
+      console.log("URL ML Service yang digunakan:", `${this.mlServiceUrl}/predict`); 
+      console.log("mengirim data ke service ML:", predictionPayload);
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); 
@@ -92,4 +94,4 @@ class PredictionService {
   }
 }
 
-module.exports = PredictionService;
+module.exports = { PredictionService };

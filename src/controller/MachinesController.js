@@ -2,7 +2,7 @@
 
 const { MachinesModel } = require("../model/MachinesModel");
 const Alert = require("../model/Alert");
-const PredictionService = require("../services/PredictionService");
+const { PredictionService } = require("../services/PredictionService");
 const { calculatePaginationParameters, paginationMetadata } = require("../helper/paginationHelper");
 
 class MachineController {
@@ -12,6 +12,7 @@ class MachineController {
       const totalCount = await MachinesModel.getTotalCount();
       const params = calculatePaginationParameters(req.query, totalCount, 10);
       const result = await MachinesModel.findAllWithPagination(params.limit, params.offset);
+      console.log(result);
       const resultCondition = await MachineController._getPrediction(result);
       const metaData = paginationMetadata({
         page: params.page,
@@ -243,6 +244,40 @@ class MachineController {
   static async getMachineStatistics(req, res) {
     try {
       const stats = await MachinesModel.getStatistics();
+      const statusStats = await MachinesModel.getCountPrediction("prediction", "status");
+      const severityStats = await MachinesModel.getCountPrediction("severity", "severity");
+      console.log(severityStats);
+      const predictMachineCount = await MachinesModel.getCountMachinePredict();
+
+      const predictionStatusMap = (statusStats || []).reduce((acc, item) => {
+        if (item && item.status && item.count) {
+            acc[item.status] = parseInt(item.count, 10);
+        }
+        return acc;
+    }, {});
+
+    const predictionSeverityMap = (severityStats || []).reduce((acc, item) => {
+        if (item && item.severity && item.count) {
+            acc[item.severity] = parseInt(item.count, 10);
+        }
+        return acc;
+    }, {});
+      
+      const combine = {
+        ...stats,
+        prediction_summary: {
+          status: predictionStatusMap,
+          severity: predictionSeverityMap
+        },
+        total_records_processed: predictMachineCount
+      };
+
+      res.status(200).json({
+        success: true,
+        message: "Statistik mesin berhasil diambil",
+        data: combine,
+      });
+      /*
       const machines = await MachinesModel.getLatestMachinesByProductId();
       const machinePredict = await MachineController._getPrediction(machines);
       const predictionStats = MachineController._calculatePredictionStats(machinePredict);
@@ -259,6 +294,7 @@ class MachineController {
         message: "Statistik mesin berhasil diambil",
         data: combine,
       });
+      */
     } catch (error) {
       res.status(500).json({
         success: false,
@@ -266,6 +302,7 @@ class MachineController {
         error: error.message,
       });
     }
+    
   }
 
   // GET - latest machine data
@@ -354,34 +391,26 @@ class MachineController {
         })
       }
 
+      const status = "prediction";
       const riskUpper = risk.toUpperCase();
-      
-      const data = await MachinesModel.findAllWithPagination();
-
-      const machinePredict = await MachineController._getPrediction(data);
-
-      const filteredData = machinePredict.filter((machine) => {
-        return machine.condition && machine.condition.status === riskUpper;
-      });
-
-      const totalFilterCount = filteredData.length;
-      const params = calculatePaginationParameters(req.query, totalFilterCount, 10);
-      const paginatedResult = filteredData.slice(params.offset, params.offset + params.limit);
+      const totalCount = await MachinesModel.getLatestMachinesByFilterCount(status, riskUpper);
+      const params = calculatePaginationParameters(req.query, totalCount, 10);
+      const dataResult = await MachinesModel.getLatestMachinesByFilterPagination(status, riskUpper, params.limit, params.offset);
 
       const metaData = paginationMetadata({
         page: params.page,
         limit: params.limit,
-        totalCount: totalFilterCount,
+        totalCount: totalCount,
         totalPages: params.totalPages
       })
-    
+
       res.status(200).json({
         success: true,
         message: "Data mesin berhasil diambil",
-        data: paginatedResult,
+        data: dataResult,
         pagination: metaData,
         summary: {
-          total: totalFilterCount,
+          total: totalCount,
           filter: risk
         }
       });
@@ -394,6 +423,7 @@ class MachineController {
     }
   }
 
+  // GET - Filter data bedasarkan Risk
   static async filterDataBySeverity(req, res) { 
     try {
       const { severity } = req.params;
@@ -406,33 +436,25 @@ class MachineController {
       }
 
       const severityUpper = severity.toUpperCase();
-      
-      const data = await MachinesModel.findAllWithPagination();
-
-      const machinePredict = await MachineController._getPrediction(data);
-
-      const filteredData = machinePredict.filter((machine) => {
-        return machine.condition && machine.condition.severity === severityUpper;
-      });
-      
-      const totalFilterCount = filteredData.length;
-      const params = calculatePaginationParameters(req.query, totalFilterCount, 10);
-      const paginatedResult = filteredData.slice(params.offset, params.offset + params.limit);
+      const status = "severity";
+      const totalCount = await MachinesModel.getLatestMachinesByFilterCount(status, severityUpper);
+      const params = calculatePaginationParameters(req.query, totalCount, 10);
+      const dataResult = await MachinesModel.getLatestMachinesByFilterPagination(status, severityUpper, params.limit, params.offset);
 
       const metaData = paginationMetadata({
         page: params.page,
         limit: params.limit,
-        totalCount: totalFilterCount,
+        totalCount: totalCount,
         totalPages: params.totalPages
       })
-    
+
       res.status(200).json({
         success: true,
         message: "Data mesin berhasil diambil",
-        data: paginatedResult,
+        data: dataResult,
         pagination: metaData,
         summary: {
-          total: totalFilterCount,
+          total: totalCount,
           filter: severity
         }
       });

@@ -18,7 +18,7 @@ class UserController {
                 {
                     status: 'success',
                     data: {
-                        message: result
+                        message: result 
                     }
                 }
             );
