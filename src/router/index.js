@@ -16,6 +16,7 @@ const { userRouter } = require('./UserRouter');
 const { machinesRouter } = require("./MachinesRouter");
 const { AlertRouter } = require("./AlertRouter");
 const { mlServiceRouter } = require("./mlServiceRouter");
+const { cronRouter } = require('./CronRouter');
 
 // main router
 router.get("/", Controller.Landing);
@@ -25,5 +26,6 @@ router.use(userRouter);
 router.use("/api", machinesRouter);
 router.use("/api/alerts", AlertRouter);
 router.use("/api/ml", mlServiceRouter);
+router.use("/api/cron", cronRouter);
 
 module.exports = { router };

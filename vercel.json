@@ -14,7 +14,7 @@
     ],
     "crons": [
         {
-        "path": "src/api/cron/predict",
+        "path": "api/cron/predict",
         "schedule": "*/5 * * * *"
         }
     ]
